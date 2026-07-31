@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OKZ-Schilder Generator</title>
+<style>
+  @font-face{
+    font-family: "Univers LT Std";
+    src: url("fonts/UniversLTStd-Bold.otf") format("opentype");
+    font-weight: 700;
+    font-style: normal;
+  }
+  @font-face{
+    font-family: "Univers LT Std";
+    src: url("fonts/UniversLTStd-Light.otf") format("opentype");
+    font-weight: 300;
+    font-style: normal;
+  }
+  :root{
+    --header-h: 45mm;
+    --sign-w: 160mm;
+    --sign-h: 160mm;
+    --body-left: 20.5mm;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    background:#eef0f2;
+    color:#1c1c1c;
+  }
+  .app{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 24px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .panel{
+    background:#fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    padding: 20px 22px;
+    width: 100%;
+    max-width: 380px;
+    flex: 1 1 320px;
+  }
+  .panel h1{
+    font-size: 20px;
+    margin: 0 0 4px 0;
+  }
+  .panel p.sub{
+    margin: 0 0 18px 0;
+    color:#666;
+    font-size: 13px;
+  }
+  .field{ margin-bottom: 18px; }
+  .field label, label.fieldlabel{
+    display:block;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .field input[type="text"],
+  .field textarea,
+  .block-fields input[type="text"],
+  .block-fields textarea,
+  select{
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .field textarea, .block-fields textarea{ min-height: 70px; }
+  .field .hint{
+    font-size: 12px;
+    color:#888;
+    margin-top: 4px;
+  }
+  .swatches{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .swatch{
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding:0;
+  }
+  .swatch.selected{
+    border-color: #222;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #222;
+  }
+  .btnrow{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  button{
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 11px 14px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-primary{ background:#1a7f37; color:#fff; }
+  .btn-secondary{ background:#eef1f5; color:#222; border:1px solid #cfd6de; }
+  .btn-tertiary{ background:#fff; color:#222; border:1px solid #cfd6de; cursor:pointer; }
+  #fileLoadInput{ display:none; }
+
+  /* --- Textblöcke: Editor in der Seitenleiste --- */
+  .add-block-row{
+    display:flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .add-block-row select{ flex: 1 1 auto; }
+  .add-block-row button{ flex: 0 0 auto; white-space:nowrap; }
+  #blockList{ margin-top: 14px; display:flex; flex-direction:column; gap: 12px; }
+  .block-card{
+    border: 1px solid #dfe3e7;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fafbfc;
+  }
+  .block-card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 10px;
+  }
+  .block-card-title{
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .block-card-actions{ display:flex; gap: 4px; }
+  .icon-btn{
+    background:#fff;
+    border:1px solid #cfd6de;
+    color:#222;
+    font-size:13px;
+    font-weight:700;
+    padding: 4px 8px;
+    border-radius: 5px;
+    cursor:pointer;
+  }
+  .icon-btn:disabled{ opacity:0.35; cursor:default; }
+  .block-fields > label{ margin-top: 10px; }
+  .block-fields > *:first-child{ margin-top:0; }
+  .empty-hint{ font-size:12px; color:#888; }
+
+  /* --- Vorschau / Schild ---
+     #sign behält intern immer exakt 160x160mm (wichtig für Schriftgrößen/
+     Abstände und den PDF-Export). Für die Bildschirmanzeige wird es über
+     .sign-scale-wrap + JS-Transform responsiv herunterskaliert, ohne die
+     echten mm-Maße zu verändern. */
+  .preview-wrap{
+    width: 100%;
+    max-width: 160mm;
+    flex: 1 1 320px;
+  }
+  .preview-scale-note{
+    font-size: 12px;
+    color:#777;
+    margin-bottom: 8px;
+    text-align:center;
+  }
+  .sign-scale-wrap{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  }
+  #sign{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--sign-w);
+    height: var(--sign-h);
+    background:#fff;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transform-origin: top left;
+  }
+  .sign-header{
+    width: 100%;
+    height: var(--header-h);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding: 3mm 6mm;
+  }
+  .sign-title{
+    font-family: "Univers LT Std", Arial, sans-serif;
+    font-size: 24pt;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #ffffff;
+  }
+  .sign-subtitle{
+    font-family: "Univers LT Std", Arial, sans-serif;
+    font-size: 24pt;
+    font-weight: 300;
+    margin-top: 2mm;
+    line-height: 1.2;
+    color: #ffffff;
+  }
+
+  /* Restbereich unterhalb der Kopffläche: Blöcke beginnen links bei 20,5mm.
+     Oben/rechts/unten-Innenabstand sowie alle Zeilen-/Blockabstände unten
+     sind Platzhalter, bis die genauen Angaben pro Block-Typ vorliegen. */
+  .sign-body{
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 8mm 10mm 8mm var(--body-left);
+    overflow:hidden;
+  }
+  .block{ margin-bottom: 8mm; }
+  .block:last-child{ margin-bottom: 0; }
+
+  .block-heading{
+    font-family: "Univers LT Std", Arial, sans-serif;
+    font-weight: 700;
+    font-size: 32pt;
+    line-height: 1.15;
+    color: #000000;
+    white-space: pre-wrap;
+  }
+  .block-subtitle{
+    font-family: "Univers LT Std", Arial, sans-serif;
+    font-weight: 300;
+    font-size: 22pt;
+    line-height: 1.25;
+    color: #000000;
+    margin-top: 2mm;
+    white-space: pre-wrap;
+  }
+  @media print{
+    body{ background:#fff; }
+    .app{ padding:0; gap:0; }
+    .panel, .preview-scale-note{ display:none !important; }
+    .preview-wrap{ display:flex; width:auto; max-width:none; }
+    .sign-scale-wrap{
+      box-shadow:none;
+      width: 160mm;
+      height: 160mm;
+      aspect-ratio: auto;
+      overflow: visible;
+    }
+    #sign{
+      position: static;
+      transform: none !important;
+      margin:0;
+    }
+    @page{ size: 160mm 160mm; margin: 0; }
+  }
+
+  /* Schmale Bildschirme: etwas kompakteres Layout */
+  @media (max-width: 480px){
+    .app{ padding: 12px; gap: 16px; }
+    .panel{ padding: 16px; }
+  }
+
+  /* --- Login-Hürde (nur aktiv, wenn beim Deploy ein Passwort-Hash
+     eingesetzt wurde; lokal per Doppelklick bleibt die Datei ungeschützt) --- */
+  .login-gate{
+    position: fixed;
+    inset: 0;
+    background: #eef0f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 24px;
+  }
+  .login-card{
+    background:#fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    padding: 28px 26px;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+  }
+  .login-card h1{
+    font-size: 18px;
+    margin: 0 0 4px 0;
+  }
+  .login-card p.sub{
+    margin: 0 0 16px 0;
+    color:#666;
+    font-size: 13px;
+  }
+  .login-card input[type="password"]{
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .login-error{
+    color:#b3261e;
+    font-size: 13px;
+    margin: 10px 0 0 0;
+    display:none;
+  }
+  @media print{
+    .login-gate{ display:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <h1>OKZ-Schilder Generator</h1>
+    <p class="sub">Bitte Passwort eingeben.</p>
+    <input type="password" id="loginPasswordInput" placeholder="Passwort" autocomplete="current-password">
+    <button type="button" class="btn-primary" id="btnLogin" style="width:100%;margin-top:12px;">Anmelden</button>
+    <p class="login-error" id="loginError">Falsches Passwort.</p>
+  </div>
+</div>
+
+<div class="app">
+
+  <div class="panel">
+    <h1>OKZ-Schilder Generator</h1>
+    <p class="sub">Farbe wählen, Text eintragen, als PDF speichern.</p>
+
+    <div class="field">
+      <label>1. Farbe der Kopffläche</label>
+      <div class="swatches" id="swatches"></div>
+    </div>
+
+    <div class="field">
+      <label for="titleInput">2. Überschrift</label>
+      <input type="text" id="titleInput" placeholder="z. B. Raum 101" maxlength="60">
+    </div>
+
+    <div class="field">
+      <label for="subtitleInput">3. Untertitel (optional)</label>
+      <input type="text" id="subtitleInput" placeholder="z. B. Besprechungsraum" maxlength="80">
+    </div>
+
+    <div class="field">
+      <label>4. Textblöcke (unterer Bereich)</label>
+      <button type="button" class="btn-tertiary" id="btnAddBlock" style="width:100%;">+ Block hinzufügen</button>
+      <div id="blockList"></div>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn-primary" id="btnPdf">📄 Als PDF speichern</button>
+      <button class="btn-secondary" id="btnSaveTemplate">💾 Vorlage speichern</button>
+      <button class="btn-tertiary" id="btnLoadTemplate">📂 Vorlage laden</button>
+      <input type="file" id="fileLoadInput" accept=".json">
+    </div>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="preview-scale-note">Vorschau (Originalgröße 16 × 16 cm)</div>
+    <div class="sign-scale-wrap" id="signScaleWrap">
+      <div id="sign">
+        <div class="sign-header" id="signHeader">
+          <div class="sign-title" id="signTitle"></div>
+          <div class="sign-subtitle" id="signSubtitle"></div>
+        </div>
+        <div class="sign-body" id="signBody"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// --- Login-Hürde ---
+// PASSWORD_HASH wird beim Build & Deploy (GitHub Action) automatisch durch
+// den SHA-256-Hash des Passworts aus dem Secret SITE_PASSWORD ersetzt.
+// Solange hier der unveränderte Platzhalter steht (z. B. beim lokalen
+// Doppelklick-Öffnen der Datei), ist die Hürde deaktiviert und die App
+// startet direkt ohne Login.
+const PASSWORD_HASH = "__PASSWORD_HASH__";
+
+async function sha256Hex(text){
+  const enc = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function loginRequired(){
+  return /^[0-9a-f]{64}$/i.test(PASSWORD_HASH);
+}
+
+function initLoginGate(){
+  const gate = document.getElementById("loginGate");
+  if(!gate) return;
+
+  if(!loginRequired()){
+    gate.remove();
+    return;
+  }
+
+  const AUTH_KEY = "okz_authed_hash";
+  let alreadyAuthed = false;
+  try{ alreadyAuthed = localStorage.getItem(AUTH_KEY) === PASSWORD_HASH; }catch(err){}
+  if(alreadyAuthed){
+    gate.remove();
+    return;
+  }
+
+  const pwInput = document.getElementById("loginPasswordInput");
+  const btnLogin = document.getElementById("btnLogin");
+  const errorEl = document.getElementById("loginError");
+
+  async function attemptLogin(){
+    const hash = await sha256Hex(pwInput.value);
+    if(hash === PASSWORD_HASH){
+      try{ localStorage.setItem(AUTH_KEY, PASSWORD_HASH); }catch(err){}
+      gate.remove();
+    } else {
+      errorEl.style.display = "block";
+      pwInput.value = "";
+      pwInput.focus();
+    }
+  }
+
+  btnLogin.addEventListener("click", attemptLogin);
+  pwInput.addEventListener("keydown", e => { if(e.key === "Enter") attemptLogin(); });
+  pwInput.focus();
+}
+
+initLoginGate();
+
+const PALETTE = [
+  "rgb(59,107,97)",
+  "rgb(23,72,135)",
+  "rgb(243,188,0)",
+  "rgb(50,176,229)",
+  "rgb(116,168,48)",
+  "rgb(240,129,67)",
+  "rgb(178,173,129)",
+  "rgb(141,32,50)"
+];
+
+function createDefaultBlock(){
+  return { heading: "", subtitle: "" };
+}
+
+const state = {
+  version: 3,
+  color: PALETTE[0],
+  title: "",
+  subtitle: "",
+  blocks: []
+};
+
+const els = {
+  swatches: document.getElementById("swatches"),
+  titleInput: document.getElementById("titleInput"),
+  subtitleInput: document.getElementById("subtitleInput"),
+  btnAddBlock: document.getElementById("btnAddBlock"),
+  blockList: document.getElementById("blockList"),
+  signScaleWrap: document.getElementById("signScaleWrap"),
+  sign: document.getElementById("sign"),
+  signHeader: document.getElementById("signHeader"),
+  signTitle: document.getElementById("signTitle"),
+  signSubtitle: document.getElementById("signSubtitle"),
+  signBody: document.getElementById("signBody"),
+  btnPdf: document.getElementById("btnPdf"),
+  btnSaveTemplate: document.getElementById("btnSaveTemplate"),
+  btnLoadTemplate: document.getElementById("btnLoadTemplate"),
+  fileLoadInput: document.getElementById("fileLoadInput"),
+};
+
+// Responsive Vorschau: #sign bleibt intern immer 160x160mm (für korrekte
+// Schriftgrößen/Abstände und den PDF-Export), wird für kleine Bildschirme
+// aber optisch passend herunterskaliert.
+function updatePreviewScale(){
+  const wrapWidth = els.signScaleWrap.clientWidth;
+  const naturalWidth = els.sign.offsetWidth; // von transform unbeeinflusst
+  if(!wrapWidth || !naturalWidth) return;
+  const scale = wrapWidth / naturalWidth;
+  els.sign.style.transform = `scale(${scale})`;
+}
+window.addEventListener("resize", updatePreviewScale);
+
+function buildSwatches(){
+  els.swatches.innerHTML = "";
+  PALETTE.forEach((rgb) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch";
+    b.style.background = rgb;
+    b.dataset.rgb = rgb;
+    b.title = rgb;
+    b.addEventListener("click", () => {
+      state.color = rgb;
+      render();
+    });
+    els.swatches.appendChild(b);
+  });
+}
+
+function iconButton(symbol, title, onClick){
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "icon-btn";
+  b.textContent = symbol;
+  b.title = title;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function fieldLabel(text){
+  const l = document.createElement("label");
+  l.className = "fieldlabel";
+  l.textContent = text;
+  return l;
+}
+
+function moveBlock(idx, dir){
+  const newIdx = idx + dir;
+  if(newIdx < 0 || newIdx >= state.blocks.length) return;
+  const tmp = state.blocks[idx];
+  state.blocks[idx] = state.blocks[newIdx];
+  state.blocks[newIdx] = tmp;
+  renderBlockList();
+  render();
+}
+
+function removeBlock(idx){
+  state.blocks.splice(idx, 1);
+  renderBlockList();
+  render();
+}
+
+function buildBlockFields(block){
+  const wrap = document.createElement("div");
+  wrap.className = "block-fields";
+
+  wrap.appendChild(fieldLabel("Überschrift (mehrzeilig)"));
+  const headingTa = document.createElement("textarea");
+  headingTa.value = block.heading || "";
+  headingTa.placeholder = "Zeile 1\nZeile 2";
+  headingTa.addEventListener("input", e => { block.heading = e.target.value; render(); });
+  wrap.appendChild(headingTa);
+
+  wrap.appendChild(fieldLabel("Untertitel (mehrzeilig)"));
+  const subTa = document.createElement("textarea");
+  subTa.value = block.subtitle || "";
+  subTa.placeholder = "Zeile 1\nZeile 2";
+  subTa.addEventListener("input", e => { block.subtitle = e.target.value; render(); });
+  wrap.appendChild(subTa);
+
+  return wrap;
+}
+
+function renderBlockList(){
+  els.blockList.innerHTML = "";
+  if(state.blocks.length === 0){
+    const hint = document.createElement("div");
+    hint.className = "empty-hint";
+    hint.textContent = "Noch keine Textblöcke hinzugefügt.";
+    els.blockList.appendChild(hint);
+    return;
+  }
+  state.blocks.forEach((block, idx) => {
+    const card = document.createElement("div");
+    card.className = "block-card";
+
+    const head = document.createElement("div");
+    head.className = "block-card-head";
+    const title = document.createElement("span");
+    title.className = "block-card-title";
+    title.textContent = "Block " + (idx + 1);
+    const actions = document.createElement("div");
+    actions.className = "block-card-actions";
+    const upBtn = iconButton("↑", "Nach oben", () => moveBlock(idx, -1));
+    const downBtn = iconButton("↓", "Nach unten", () => moveBlock(idx, 1));
+    const delBtn = iconButton("✕", "Entfernen", () => removeBlock(idx));
+    if(idx === 0) upBtn.disabled = true;
+    if(idx === state.blocks.length - 1) downBtn.disabled = true;
+    actions.append(upBtn, downBtn, delBtn);
+    head.append(title, actions);
+    card.appendChild(head);
+    card.appendChild(buildBlockFields(block));
+    els.blockList.appendChild(card);
+  });
+}
+
+function renderSignBody(){
+  els.signBody.innerHTML = "";
+  state.blocks.forEach(block => {
+    const blockEl = document.createElement("div");
+    blockEl.className = "block";
+
+    if(block.heading){
+      const h = document.createElement("div");
+      h.className = "block-heading";
+      h.textContent = block.heading;
+      blockEl.appendChild(h);
+    }
+    if(block.subtitle){
+      const s = document.createElement("div");
+      s.className = "block-subtitle";
+      s.textContent = block.subtitle;
+      blockEl.appendChild(s);
+    }
+
+    els.signBody.appendChild(blockEl);
+  });
+}
+
+function render(){
+  // Kopffläche
+  els.signHeader.style.background = state.color;
+  els.signTitle.textContent = state.title;
+  els.signSubtitle.textContent = state.subtitle;
+  els.signSubtitle.style.display = state.subtitle ? "block" : "none";
+
+  // Swatch-Auswahl markieren
+  [...els.swatches.children].forEach(b => {
+    b.classList.toggle("selected", b.dataset.rgb === state.color);
+  });
+
+  renderSignBody();
+
+  document.title = (state.title ? state.title + " – " : "") + "OKZ-Schild";
+}
+
+// --- Events ---
+els.titleInput.addEventListener("input", e => { state.title = e.target.value; render(); });
+els.subtitleInput.addEventListener("input", e => { state.subtitle = e.target.value; render(); });
+
+els.btnAddBlock.addEventListener("click", () => {
+  state.blocks.push(createDefaultBlock());
+  renderBlockList();
+  render();
+});
+
+els.btnPdf.addEventListener("click", () => {
+  window.print();
+});
+
+els.btnSaveTemplate.addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const slug = (state.title || "schild").toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/g, "-").replace(/^-+|-+$/g, "") || "schild";
+  a.href = url;
+  a.download = slug + "-vorlage.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+els.btnLoadTemplate.addEventListener("click", () => {
+  els.fileLoadInput.value = "";
+  els.fileLoadInput.click();
+});
+
+function isValidColor(c){
+  return typeof c === "string" && PALETTE.includes(c);
+}
+
+function sanitizeBlocks(blocks){
+  if(!Array.isArray(blocks)) return [];
+  return blocks
+    .filter(b => b && typeof b === "object")
+    .map(b => ({
+      heading: typeof b.heading === "string" ? b.heading : "",
+      subtitle: typeof b.subtitle === "string" ? b.subtitle : ""
+    }));
+}
+
+els.fileLoadInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try{
+      const loaded = JSON.parse(ev.target.result);
+      const colorWasInvalid = !isValidColor(loaded.color);
+
+      state.color = colorWasInvalid ? PALETTE[0] : loaded.color;
+      state.title = typeof loaded.title === "string" ? loaded.title : "";
+      state.subtitle = typeof loaded.subtitle === "string" ? loaded.subtitle : "";
+      state.blocks = sanitizeBlocks(loaded.blocks);
+
+      els.titleInput.value = state.title;
+      els.subtitleInput.value = state.subtitle;
+      renderBlockList();
+      render();
+
+      if(colorWasInvalid){
+        alert("Hinweis: Die Farbe in dieser Vorlage gehörte nicht zur zulässigen Palette. Es wurde die Standardfarbe eingesetzt.");
+      }
+    }catch(err){
+      alert("Diese Datei konnte nicht als Vorlage gelesen werden.");
+    }
+  };
+  reader.readAsText(file);
+});
+
+// Init
+buildSwatches();
+renderBlockList();
+render();
+updatePreviewScale();
+window.addEventListener("load", updatePreviewScale);
+</script>
+</body>
+</html>

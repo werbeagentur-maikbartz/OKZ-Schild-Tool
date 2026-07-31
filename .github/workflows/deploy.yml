@@ -1,0 +1,53 @@
+name: Build & Deploy OKZ-Schilder Generator
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build (Passwort-Hash einsetzen)
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: |
+          set -e
+          mkdir -p dist
+          cp OKZ-Schilder-Generator.html dist/index.html
+          cp -r fonts dist/fonts
+
+          if [ -n "$SITE_PASSWORD" ]; then
+            HASH=$(printf '%s' "$SITE_PASSWORD" | sha256sum | awk '{print $1}')
+            echo "Passwort-Hash wird eingesetzt (Login-Hürde aktiv)."
+          else
+            HASH="__PASSWORD_HASH__"
+            echo "Kein SITE_PASSWORD-Secret gesetzt – Seite wird ohne Login-Hürde deployt."
+          fi
+
+          sed -i "s/__PASSWORD_HASH__/$HASH/" dist/index.html
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
