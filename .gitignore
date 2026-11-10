@@ -3,4 +3,6 @@
 dist/
 .DS_Store
 Thumbs.db
-.ps1
+klimpe.jpg
+assets/fonts/
+deploy.cmd

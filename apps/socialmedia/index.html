@@ -108,7 +108,34 @@
     width: auto;
     margin: var(--mid-line-gap) auto 0;
   }
+  .zone-content p.mid-headline .mid-bold{ font-weight: 700; }
   .warn{ margin: 8px 0 0; font-size: 12px; color: #b3261e; }
+  #exportHint{ margin-top: 10px; font-size: 12px; color: #888; }
+
+  /* Headline-Editor: Textfeld mit Fett-Schaltfläche */
+  .rte-bar{ display: flex; margin-bottom: 6px; }
+  .rte-btn{
+    background:#fff;
+    border:1px solid #cfd6de;
+    color:#222;
+    font-size:14px;
+    padding: 4px 12px;
+    border-radius: 5px;
+    cursor:pointer;
+  }
+  .rte-btn.active{ background:#222; border-color:#222; color:#fff; }
+  .rte{
+    width: 100%;
+    min-height: 70px;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
 
   .zone-bottom{
     background: #ffffff;
@@ -240,8 +267,12 @@
     </div>
 
     <div class="field">
-      <label for="inHeadline">Headline</label>
-      <textarea id="inHeadline"></textarea>
+      <label id="lblHeadline">Headline</label>
+      <div class="rte-bar">
+        <button type="button" class="rte-btn" id="btnBold" title="Markierten Text fett (Strg+B)" aria-pressed="false"><b>B</b></button>
+      </div>
+      <div class="rte" id="inHeadline" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="lblHeadline"></div>
+      <div class="hint">Text markieren und auf B klicken (oder Strg+B), um ihn fett zu setzen.</div>
     </div>
 
     <div class="field">
@@ -300,6 +331,7 @@ const els = {
   zones: document.querySelectorAll(".zone, .subzone"),
   middle: document.querySelector(".content-middle"),
   inHeadline: document.getElementById("inHeadline"),
+  btnBold: document.getElementById("btnBold"),
   inSubline: document.getElementById("inSubline"),
   midWarn: document.getElementById("midWarn"),
   btnPdf: document.getElementById("btnPdf"),
@@ -308,7 +340,62 @@ const els = {
 };
 
 // Der einzige editierbare Block (Bereich MIDDLE)
-const state = { headline: "Jobtitel (m/w/d)", subline: "Jobbeschreibung" };
+// Headline als Textabschnitte: { t: Text (inkl. Zeilenumbruechen), b: fett }
+const state = {
+  headline: [{ t: "Jobtitel", b: true }, { t: " (m/w/d)", b: false }],
+  subline: "Jobbeschreibung"
+};
+
+function headlineText(){
+  return state.headline.map(r => r.t).join("");
+}
+
+// Liest den Editor (contenteditable) in Textabschnitte; nur Fett und Zeilenumbrueche zaehlen.
+function readRuns(root){
+  const runs = [];
+  const endsWithNewline = () => runs.length > 0 && runs[runs.length - 1].t.endsWith("\n");
+  const push = (t, b) => {
+    if(!t) return;
+    const last = runs[runs.length - 1];
+    if(last && last.b === b) last.t += t; else runs.push({ t, b });
+  };
+  const walk = (node, bold) => {
+    node.childNodes.forEach(ch => {
+      if(ch.nodeType === Node.TEXT_NODE){
+        push(ch.nodeValue.split(String.fromCharCode(160)).join(" "), bold);
+        return;
+      }
+      if(ch.nodeType !== Node.ELEMENT_NODE) return;
+      if(ch.tagName === "BR"){ push("\n", bold); return; }
+      let b = bold;
+      if(ch.tagName === "B" || ch.tagName === "STRONG") b = true;
+      const w = ch.style && ch.style.fontWeight;
+      if(w) b = (w === "bold" || w === "bolder" || parseInt(w, 10) >= 600);
+      if((ch.tagName === "DIV" || ch.tagName === "P") && runs.length && !endsWithNewline()) push("\n", false);
+      walk(ch, b);
+    });
+  };
+  walk(root, false);
+  while(runs.length && /\n$/.test(runs[runs.length - 1].t)){
+    const last = runs[runs.length - 1];
+    last.t = last.t.replace(/\n+$/, "");
+    if(!last.t) runs.pop();
+  }
+  return runs;
+}
+
+function fillEditor(runs){
+  els.inHeadline.replaceChildren();
+  runs.forEach(r => {
+    if(r.b){
+      const b = document.createElement("b");
+      b.textContent = r.t;
+      els.inHeadline.appendChild(b);
+    } else {
+      els.inHeadline.appendChild(document.createTextNode(r.t));
+    }
+  });
+}
 
 const EXPORT = { widthMm: 210, heightMm: 210, dpi: 300 };
 const MM_PER_PX = 25.4 / 96;
@@ -318,10 +405,19 @@ function renderMiddle(){
   const blockEl = document.createElement("div");
   blockEl.className = "mid-block";
 
-  if(state.headline){
+  if(headlineText()){
     const h = document.createElement("p");
     h.className = "mid-headline";
-    h.textContent = state.headline;
+    state.headline.forEach(r => {
+      if(r.b){
+        const s = document.createElement("span");
+        s.className = "mid-bold";
+        s.textContent = r.t;
+        h.appendChild(s);
+      } else {
+        h.appendChild(document.createTextNode(r.t));
+      }
+    });
     blockEl.appendChild(h);
   }
   if(state.subline){
@@ -360,7 +456,7 @@ function updateZoneLabels(scale){
 
 // --- Export ---
 function fileBase(){
-  const slug = state.headline.toLowerCase().replace(/[^a-z0-9äöüß]+/g, "-").replace(/^-+|-+$/g, "");
+  const slug = headlineText().toLowerCase().replace(/[^a-z0-9äöüß]+/g, "-").replace(/^-+|-+$/g, "");
   return slug ? "socialmedia-" + slug : "socialmedia";
 }
 
@@ -402,9 +498,45 @@ async function exportAs(kind){
 }
 
 // --- Events ---
-els.inHeadline.value = state.headline;
+fillEditor(state.headline);
 els.inSubline.value = state.subline;
-els.inHeadline.addEventListener("input", e => { state.headline = e.target.value; renderMiddle(); });
+
+function syncHeadline(){
+  state.headline = readRuns(els.inHeadline);
+  renderMiddle();
+  updateBoldState();
+}
+
+function updateBoldState(){
+  const sel = document.getSelection();
+  const inside = sel.rangeCount > 0 && els.inHeadline.contains(sel.anchorNode);
+  const on = inside && document.queryCommandState("bold");
+  els.btnBold.classList.toggle("active", !!on);
+  els.btnBold.setAttribute("aria-pressed", String(!!on));
+}
+
+els.inHeadline.addEventListener("input", syncHeadline);
+// Nur Fett erlaubt: Kursiv/Unterstrichen/... sperren, Enter als Zeilenumbruch, Einfuegen nur als Text
+els.inHeadline.addEventListener("beforeinput", e => {
+  if(e.inputType === "insertParagraph"){
+    e.preventDefault();
+    document.execCommand("insertLineBreak");
+  } else if(e.inputType === "insertFromDrop" || (e.inputType.startsWith("format") && e.inputType !== "formatBold")){
+    e.preventDefault();
+  }
+});
+els.inHeadline.addEventListener("paste", e => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+  document.execCommand("insertText", false, text);
+});
+els.btnBold.addEventListener("mousedown", e => e.preventDefault());
+els.btnBold.addEventListener("click", () => {
+  els.inHeadline.focus();
+  document.execCommand("bold");
+  syncHeadline();
+});
+document.addEventListener("selectionchange", updateBoldState);
 els.inSubline.addEventListener("input", e => { state.subline = e.target.value; renderMiddle(); });
 
 els.chkGuides.addEventListener("change", () => {
