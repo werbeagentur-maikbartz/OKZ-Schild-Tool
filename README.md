@@ -1,32 +1,47 @@
-# OKZ-Schilder Generator
+# OKZ Tools
 
-Single-File-Webapp zum Erstellen von 16x16 cm Schildern: farbige Kopffläche mit Überschrift/Untertitel, darunter frei kombinierbare Textblöcke. Export als PDF, Vorlagen speicherbar/ladbar als JSON.
+Sammlung kleiner Single-Page-Werkzeuge mit gemeinsamem Dashboard. Reines HTML/CSS/JS, kein Build-Tool.
+
+| App | Format | Status |
+|---|---|---|
+| **OKZ-Schilder** (`apps/okz-schilder/`) | 16 × 16 cm, farbige Kopffläche + Textblöcke, PDF-Export, Vorlagen (JSON) | aktiv |
+| **SocialMedia** (`apps/socialmedia/`) | 21 × 21 cm, Bereiche TOP 48 mm / CONTENT Rest / BOTTOM 36 mm | Gerüst |
+
+## Projektstruktur
+
+```
+index.html                    Dashboard (Startseite, Karte pro App)
+apps/
+  okz-schilder/index.html     Schilder-Generator
+  socialmedia/index.html      SocialMedia (Gerüst)
+shared/
+  base.css                    Gemeinsame Styles (Schrift, Panel, Buttons, Login)
+  editor.css                  Block-Editor (Karten, Textfelder) für Apps mit mehreren Blöcken
+  auth.js                     Gemeinsame Login-Hürde (ein Login für alle Apps)
+  export.js                   Export als PNG / JPG / PDF (300 dpi), ohne Abhängigkeiten
+assets/                       Logos und Grafiken (SVG, inkl. verlinkter Bilder)
+  fonts/                      Univers LT Std (Bold/Light)
+.github/workflows/deploy.yml  Build & Deploy nach GitHub Pages
+```
 
 ## Lokal nutzen (ohne Installation)
 
-`OKZ-Schilder-Generator.html` doppelklicken und im Browser öffnen. Der Ordner `fonts/` muss im selben Verzeichnis liegen. Kein Server, keine Installation nötig.
+`index.html` doppelklicken. Alle Pfade sind relativ, es werden keine ES-Module verwendet – daher funktioniert alles auch direkt per `file://`. Die Login-Hürde ist lokal deaktiviert.
+
+PNG/JPG/PDF-Export der SocialMedia-App benötigt `http(s)` (GitHub Pages oder ein lokaler Server, z. B. `python -m http.server` im Projektordner). Per Doppelklick (`file://`) darf der Browser keine Dateien einlesen: dort funktioniert nur das PDF über den Druckdialog.
 
 ## Online per GitHub Pages (mit Passwort-Hürde)
 
-Die Datei enthält ein optionales Login-Gate. Es ist nur aktiv, wenn beim Deploy ein SHA-256-Passwort-Hash eingesetzt wurde (lokal per Doppelklick bleibt die Hürde deaktiviert).
+Pages-Quelle muss auf *GitHub Actions* stehen. Bei jedem Push auf `main` (oder manuell) baut der Workflow den Ordner `dist/` (`index.html`, `apps/`, `shared/`) und deployt ihn:
 
-### Einmalige Einrichtung
+`https://werbeagentur-maikbartz.github.io/OKZ-Schild-Tool/` → Dashboard
 
-1. PowerShell im Projektordner öffnen.
-2. `deploy-setup.ps1` ausführen. Voraussetzung: [GitHub CLI](https://cli.github.com) installiert und mit `gh auth login` angemeldet, sowie Schreibrechte in der Organisation `werbeagentur-maikbartz`.
-3. Das Skript legt das Repo `werbeagentur-maikbartz/OKZ-Schild-Tool` an, aktiviert GitHub Pages (Quelle: GitHub Actions) und pusht den Code. Danach kann optional direkt das Passwort gesetzt werden.
-4. Nach dem ersten erfolgreichen Workflow-Lauf ist die Seite erreichbar unter:
-   `https://werbeagentur-maikbartz.github.io/OKZ-Schild-Tool/`
+Die Login-Hürde (`shared/auth.js`) ist nur aktiv, wenn das Secret `SITE_PASSWORD` gesetzt ist; der Workflow ersetzt dann den Platzhalter durch den SHA-256-Hash. Ein Login gilt für das Dashboard und alle Apps. Das ist eine einfache Zugangshürde im Browser, kein echter Zugriffsschutz.
 
 ### Passwort setzen oder ändern
 
 ```
 gh secret set SITE_PASSWORD --repo werbeagentur-maikbartz/OKZ-Schild-Tool
-```
-
-Danach den Workflow erneut auslösen (Push auf `main`, oder manuell):
-
-```
 gh workflow run deploy.yml --repo werbeagentur-maikbartz/OKZ-Schild-Tool
 ```
 
@@ -38,11 +53,10 @@ Bereits eingeloggte Besucher werden nach einer Passwortänderung automatisch neu
 gh run watch --repo werbeagentur-maikbartz/OKZ-Schild-Tool
 ```
 
-## Projektstruktur
+## Neue App hinzufügen
 
-```
-OKZ-Schilder-Generator.html   Die App selbst
-fonts/                        Univers LT Std (Bold/Light), lokal eingebunden
-.github/workflows/deploy.yml  Build & Deploy nach GitHub Pages
-deploy-setup.ps1              Einmaliges Setup-Skript (Repo anlegen, Pages aktivieren, pushen)
-```
+1. Ordner `apps/<name>/index.html` anlegen (am einfachsten `apps/socialmedia/` als Vorlage kopieren).
+2. Im `<head>` `../../shared/base.css` einbinden, direkt nach `<body>` `../../shared/auth.js`.
+3. Auf dem Dashboard (`index.html`) einen `<li>`-Eintrag kopieren und anpassen.
+
+Der Workflow deployt `apps/` komplett – eine Workflow-Änderung ist nicht nötig.

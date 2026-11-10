@@ -4,84 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OKZ-Schilder Generator</title>
+<link rel="stylesheet" href="../../shared/base.css">
+<link rel="stylesheet" href="../../shared/editor.css">
 <style>
-  @font-face{
-    font-family: "Univers LT Std";
-    src: url("fonts/UniversLTStd-Bold.otf") format("opentype");
-    font-weight: 700;
-    font-style: normal;
-  }
-  @font-face{
-    font-family: "Univers LT Std";
-    src: url("fonts/UniversLTStd-Light.otf") format("opentype");
-    font-weight: 300;
-    font-style: normal;
-  }
   :root{
     --header-h: 45mm;
     --sign-w: 160mm;
     --sign-h: 160mm;
     --body-left: 20.5mm;
     --body-right: 10mm;
-  }
-  *{ box-sizing: border-box; }
-  html,body{
-    margin:0; padding:0;
-    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
-    background:#eef0f2;
-    color:#1c1c1c;
-  }
-  .app{
-    display:flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    padding: 24px;
-    align-items: flex-start;
-    justify-content: center;
-  }
-  .panel{
-    background:#fff;
-    border-radius: 10px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-    padding: 20px 22px;
-    width: 100%;
-    max-width: 380px;
-    flex: 1 1 320px;
-  }
-  .panel h1{
-    font-size: 20px;
-    margin: 0 0 4px 0;
-  }
-  .panel p.sub{
-    margin: 0 0 18px 0;
-    color:#666;
-    font-size: 13px;
-  }
-  .field{ margin-bottom: 18px; }
-  .field label, label.fieldlabel{
-    display:block;
-    font-weight: 600;
-    font-size: 13px;
-    margin-bottom: 6px;
-  }
-  .field input[type="text"],
-  .field textarea,
-  .block-fields input[type="text"],
-  .block-fields textarea,
-  select{
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: inherit;
-    resize: vertical;
-  }
-  .field textarea, .block-fields textarea{ min-height: 70px; }
-  .field .hint{
-    font-size: 12px;
-    color:#888;
-    margin-top: 4px;
   }
   .swatches{
     display:flex;
@@ -100,24 +31,6 @@
     border-color: #222;
     box-shadow: 0 0 0 2px #fff, 0 0 0 4px #222;
   }
-  .btnrow{
-    display:flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 22px;
-  }
-  button{
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 11px 14px;
-    border-radius: 7px;
-    border: none;
-    cursor: pointer;
-  }
-  .btn-primary{ background:#1a7f37; color:#fff; }
-  .btn-secondary{ background:#eef1f5; color:#222; border:1px solid #cfd6de; }
-  .btn-tertiary{ background:#fff; color:#222; border:1px solid #cfd6de; cursor:pointer; }
   #fileLoadInput{ display:none; }
 
   /* --- Textblöcke: Editor in der Seitenleiste --- */
@@ -128,38 +41,6 @@
   }
   .add-block-row select{ flex: 1 1 auto; }
   .add-block-row button{ flex: 0 0 auto; white-space:nowrap; }
-  #blockList{ margin-top: 14px; display:flex; flex-direction:column; gap: 12px; }
-  .block-card{
-    border: 1px solid #dfe3e7;
-    border-radius: 8px;
-    padding: 12px;
-    background: #fafbfc;
-  }
-  .block-card-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom: 10px;
-  }
-  .block-card-title{
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .block-card-actions{ display:flex; gap: 4px; }
-  .icon-btn{
-    background:#fff;
-    border:1px solid #cfd6de;
-    color:#222;
-    font-size:13px;
-    font-weight:700;
-    padding: 4px 8px;
-    border-radius: 5px;
-    cursor:pointer;
-  }
-  .icon-btn:disabled{ opacity:0.35; cursor:default; }
-  .block-fields > label{ margin-top: 10px; }
-  .block-fields > *:first-child{ margin-top:0; }
-  .empty-hint{ font-size:12px; color:#888; }
   .align-btn-group{ display:flex; gap: 6px; }
   .align-btn{
     background:#fff;
@@ -296,77 +177,14 @@
     }
     @page{ size: 160mm 160mm; margin: 0; }
   }
-
-  /* Schmale Bildschirme: etwas kompakteres Layout */
-  @media (max-width: 480px){
-    .app{ padding: 12px; gap: 16px; }
-    .panel{ padding: 16px; }
-  }
-
-  /* --- Login-Hürde (nur aktiv, wenn beim Deploy ein Passwort-Hash
-     eingesetzt wurde; lokal per Doppelklick bleibt die Datei ungeschützt) --- */
-  .login-gate{
-    position: fixed;
-    inset: 0;
-    background: #eef0f2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 24px;
-  }
-  .login-card{
-    background:#fff;
-    border-radius: 10px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-    padding: 28px 26px;
-    width: 100%;
-    max-width: 320px;
-    text-align: center;
-  }
-  .login-card h1{
-    font-size: 18px;
-    margin: 0 0 4px 0;
-  }
-  .login-card p.sub{
-    margin: 0 0 16px 0;
-    color:#666;
-    font-size: 13px;
-  }
-  .login-card input[type="password"]{
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 15px;
-    font-family: inherit;
-  }
-  .login-error{
-    color:#b3261e;
-    font-size: 13px;
-    margin: 10px 0 0 0;
-    display:none;
-  }
-  @media print{
-    .login-gate{ display:none !important; }
-  }
 </style>
 </head>
 <body>
-
-<div class="login-gate" id="loginGate">
-  <div class="login-card">
-    <h1>OKZ-Schilder Generator</h1>
-    <p class="sub">Bitte Passwort eingeben.</p>
-    <input type="password" id="loginPasswordInput" placeholder="Passwort" autocomplete="current-password">
-    <button type="button" class="btn-primary" id="btnLogin" style="width:100%;margin-top:12px;">Anmelden</button>
-    <p class="login-error" id="loginError">Falsches Passwort.</p>
-  </div>
-</div>
-
+<script src="../../shared/auth.js"></script>
 <div class="app">
 
   <div class="panel">
+    <a class="back-link" href="../../index.html">← Dashboard</a>
     <h1>OKZ-Schilder Generator</h1>
     <p class="sub">Farbe wählen, Text eintragen, als PDF speichern.</p>
 
@@ -415,64 +233,6 @@
 </div>
 
 <script>
-// --- Login-Hürde ---
-// PASSWORD_HASH wird beim Build & Deploy (GitHub Action) automatisch durch
-// den SHA-256-Hash des Passworts aus dem Secret SITE_PASSWORD ersetzt.
-// Solange hier der unveränderte Platzhalter steht (z. B. beim lokalen
-// Doppelklick-Öffnen der Datei), ist die Hürde deaktiviert und die App
-// startet direkt ohne Login.
-const PASSWORD_HASH = "__PASSWORD_HASH__";
-
-async function sha256Hex(text){
-  const enc = new TextEncoder().encode(text);
-  const digest = await crypto.subtle.digest("SHA-256", enc);
-  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-function loginRequired(){
-  return /^[0-9a-f]{64}$/i.test(PASSWORD_HASH);
-}
-
-function initLoginGate(){
-  const gate = document.getElementById("loginGate");
-  if(!gate) return;
-
-  if(!loginRequired()){
-    gate.remove();
-    return;
-  }
-
-  const AUTH_KEY = "okz_authed_hash";
-  let alreadyAuthed = false;
-  try{ alreadyAuthed = localStorage.getItem(AUTH_KEY) === PASSWORD_HASH; }catch(err){}
-  if(alreadyAuthed){
-    gate.remove();
-    return;
-  }
-
-  const pwInput = document.getElementById("loginPasswordInput");
-  const btnLogin = document.getElementById("btnLogin");
-  const errorEl = document.getElementById("loginError");
-
-  async function attemptLogin(){
-    const hash = await sha256Hex(pwInput.value);
-    if(hash === PASSWORD_HASH){
-      try{ localStorage.setItem(AUTH_KEY, PASSWORD_HASH); }catch(err){}
-      gate.remove();
-    } else {
-      errorEl.style.display = "block";
-      pwInput.value = "";
-      pwInput.focus();
-    }
-  }
-
-  btnLogin.addEventListener("click", attemptLogin);
-  pwInput.addEventListener("keydown", e => { if(e.key === "Enter") attemptLogin(); });
-  pwInput.focus();
-}
-
-initLoginGate();
-
 const PALETTE = [
   "rgb(59,107,97)",
   "rgb(23,72,135)",

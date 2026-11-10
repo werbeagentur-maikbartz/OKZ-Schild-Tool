@@ -1,4 +1,4 @@
-name: Build & Deploy OKZ-Schilder Generator
+name: Build & Deploy OKZ Tools
 
 on:
   push:
@@ -30,8 +30,10 @@ jobs:
         run: |
           set -e
           mkdir -p dist
-          cp OKZ-Schilder-Generator.html dist/index.html
-          cp -r fonts dist/fonts
+          cp index.html dist/index.html
+          cp -r apps dist/apps
+          cp -r shared dist/shared
+          cp -r assets dist/assets
 
           if [ -n "$SITE_PASSWORD" ]; then
             HASH=$(printf '%s' "$SITE_PASSWORD" | sha256sum | awk '{print $1}')
@@ -41,7 +43,7 @@ jobs:
             echo "Kein SITE_PASSWORD-Secret gesetzt – Seite wird ohne Login-Hürde deployt."
           fi
 
-          sed -i "s/__PASSWORD_HASH__/$HASH/" dist/index.html
+          sed -i "s/__PASSWORD_HASH__/$HASH/" dist/shared/auth.js
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3

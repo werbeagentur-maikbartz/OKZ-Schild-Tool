@@ -1,0 +1,158 @@
+/* Gemeinsame Basis für Dashboard und alle Apps (Schilder, SocialMedia, ...) */
+
+@font-face{
+  font-family: "Univers LT Std";
+  src: url("fonts/UniversLTStd-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face{
+  font-family: "Univers LT Std";
+  src: url("fonts/UniversLTStd-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+}
+
+*{ box-sizing: border-box; }
+html,body{
+  margin:0; padding:0;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  background:#eef0f2;
+  color:#1c1c1c;
+}
+
+/* --- Layout: Seitenleiste (.panel) + Vorschau --- */
+.app{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 24px;
+  align-items: flex-start;
+  justify-content: center;
+}
+.panel{
+  background:#fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  padding: 20px 22px;
+  width: 100%;
+  max-width: 380px;
+  flex: 1 1 320px;
+}
+.panel h1{
+  font-size: 20px;
+  margin: 0 0 4px 0;
+}
+.panel p.sub{
+  margin: 0 0 18px 0;
+  color:#666;
+  font-size: 13px;
+}
+.back-link{
+  display:inline-block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color:#555;
+  text-decoration:none;
+}
+.back-link:hover{ color:#111; text-decoration:underline; }
+
+/* --- Formularfelder --- */
+.field{ margin-bottom: 18px; }
+.field label, label.fieldlabel{
+  display:block;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.field input[type="text"],
+.field textarea,
+select{
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+.field textarea{ min-height: 70px; }
+.field .hint{
+  font-size: 12px;
+  color:#888;
+  margin-top: 4px;
+}
+
+/* --- Buttons --- */
+.btnrow{
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+button{
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 14px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary{ background:#1a7f37; color:#fff; }
+.btn-secondary{ background:#eef1f5; color:#222; border:1px solid #cfd6de; }
+.btn-tertiary{ background:#fff; color:#222; border:1px solid #cfd6de; cursor:pointer; }
+
+/* --- Login-Hürde (wird von auth.js nur bei gesetztem Passwort-Hash eingefügt) --- */
+.login-gate{
+  position: fixed;
+  inset: 0;
+  background: #eef0f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+.login-card{
+  background:#fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  padding: 28px 26px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+.login-card h1{
+  font-size: 18px;
+  margin: 0 0 4px 0;
+}
+.login-card p.sub{
+  margin: 0 0 16px 0;
+  color:#666;
+  font-size: 13px;
+}
+.login-card input[type="password"]{
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+}
+.login-error{
+  color:#b3261e;
+  font-size: 13px;
+  margin: 10px 0 0 0;
+  display:none;
+}
+
+@media print{
+  body{ background:#fff; }
+  .login-gate{ display:none !important; }
+}
+
+@media (max-width: 480px){
+  .app{ padding: 12px; gap: 16px; }
+  .panel{ padding: 16px; }
+}
