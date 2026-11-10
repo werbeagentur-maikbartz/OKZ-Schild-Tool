@@ -1,555 +1,722 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OKZ SocialMedia</title>
-<link rel="stylesheet" href="../../shared/base.css">
-<style>
-  :root{
-    --sm-w: 210mm;
-    --sm-h: 210mm;
-    --top-h: 48mm;
-    --bottom-h: 36mm;
-    --top-edge: 8.4mm;
-    --bottom-left: 12.3mm;
-    --bottom-logo-right: 11.7mm;
-    --bottom-logo-bottom: 9.5mm;
-    --content-top-gap: 15mm;
-    --content-bottom-gap: 12mm;
-    --mid-side: 12.5mm;
-    --mid-line-h: 6.5mm;
-    --mid-line-gap: 0mm;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OKZ SocialMedia</title>
+    <link rel="stylesheet" href="../../shared/base.css">
+    <style>
+        :root {
+            --sm-w: 210mm;
+            --sm-h: 210mm;
+            --top-h: 48mm;
+            --bottom-h: 36mm;
+            --top-edge: 8.4mm;
+            --bottom-left: 12.3mm;
+            --bottom-logo-right: 11.7mm;
+            --bottom-logo-bottom: 9.5mm;
+            --content-top-gap: 15mm;
+            --content-bottom-gap: 12mm;
+            --mid-side: 12.5mm;
+            --mid-line-h: 6.5mm;
+            --mid-line-gap: 0mm;
+            --fs-text: 20pt;
+            --fs-headline: 23pt;
+            --fs-subline: 20pt;
+        }
 
-  /* --- Vorschau ---
-     #sign behält intern immer exakt 210x210mm (PDF-Export) und wird für die
-     Bildschirmanzeige per JS-Transform herunterskaliert (wie beim Schilder-Generator). */
-  .preview-wrap{
-    width: 100%;
-    max-width: var(--sm-w);
-    flex: 1 1 320px;
-  }
-  .preview-scale-note{
-    font-size: 12px;
-    color:#777;
-    margin-bottom: 8px;
-    text-align:center;
-  }
-  .sign-scale-wrap{
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
-  }
-  #sign{
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: var(--sm-w);
-    height: var(--sm-h);
-    background:#fff;
-    overflow: hidden;
-    transform-origin: top left;
+        /* --- Vorschau ---
+           #sign behält intern immer exakt 210x210mm (PDF-Export) und wird für die
+           Bildschirmanzeige per JS-Transform herunterskaliert (wie beim Schilder-Generator). */
+        .preview-wrap {
+            width: 100%;
+            max-width: var(--sm-w);
+            flex: 1 1 320px;
+        }
 
-    /* 3 vertikale Bereiche: TOP fix, BOTTOM fix, CONTENT = verbleibende Höhe */
-    display: grid;
-    grid-template-rows: var(--top-h) minmax(0, 1fr) var(--bottom-h);
-  }
-  .zone{
-    position: relative;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .zone-top{ background: #ffffff; }
-  /* CONTENT: selbst 3 vertikale Bereiche. TOP/BOTTOM fest (Höhe = Inhalt),
-     MIDDLE flexibel (= Rest). */
-  .zone-content{
-    background: #174887;
-    color: #ffffff;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    font-family: "Univers LT Std", Arial, sans-serif;
-    font-size: 20pt;
-    line-height: 1.15;
-  }
-  .subzone{ position: relative; min-height: 0; }
-  .zone-content p{ margin: 0; font-weight: 300; }
-  .content-top{
-    text-align: center;
-    padding-top: var(--content-top-gap);
-  }
-  .content-bottom{
-    text-align: center;
-    padding-bottom: var(--content-bottom-gap);
-  }
-  /* MIDDLE: editierbare Blöcke (Headline + Subline + grüne Linie), 12,5 mm Rand links/rechts */
-  .content-middle{
-    display: flex;
-    flex-direction: column;
-    justify-content: safe center;
-    padding-inline: var(--mid-side);
-    overflow: hidden;
-    text-align: center;
-  }
-  .mid-block{ flex: none; }
-  .zone-content p.mid-headline{
-    font-size: 23pt;
-    white-space: pre-wrap;
-  }
-  .zone-content p.mid-subline{
-    font-size: 20pt;
-    white-space: pre-wrap;
-  }
-  .mid-line{
-    display: block;
-    height: var(--mid-line-h);
-    width: auto;
-    margin: var(--mid-line-gap) auto 0;
-  }
-  .zone-content p.mid-headline .mid-bold{ font-weight: 700; }
-  .warn{ margin: 8px 0 0; font-size: 12px; color: #b3261e; }
-  #exportHint{ margin-top: 10px; font-size: 12px; color: #888; }
+        .preview-scale-note {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 8px;
+            text-align: center;
+        }
 
-  /* Headline-Editor: Textfeld mit Fett-Schaltfläche */
-  .rte-bar{ display: flex; margin-bottom: 6px; }
-  .rte-btn{
-    background:#fff;
-    border:1px solid #cfd6de;
-    color:#222;
-    font-size:14px;
-    padding: 4px 12px;
-    border-radius: 5px;
-    cursor:pointer;
-  }
-  .rte-btn.active{ background:#222; border-color:#222; color:#fff; }
-  .rte{
-    width: 100%;
-    min-height: 70px;
-    padding: 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: #fff;
-    font-size: 14px;
-    font-family: inherit;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
+        .sign-scale-wrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+        }
 
-  .zone-bottom{
-    background: #ffffff;
-    color: #174887;
-    /* feste Texte: vertikal zentriert, 12,3 mm Abstand links */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-left: var(--bottom-left);
-    font-family: "Univers LT Std", Arial, sans-serif;
-    font-size: 20pt;
-    line-height: 1.15;
-  }
-  /* Logo: Originalgröße aus dem SVG (78,5 mm), Abstand rechts/unten zur Fläche */
-  .bottom-logo{
-    position: absolute;
-    right: var(--bottom-logo-right);
-    bottom: var(--bottom-logo-bottom);
-    width: 78.5mm;
-    height: calc(78.5mm * 4549.1 / 20830.04);
-    display: block;
-  }
-  .zone-bottom p{ margin: 0; font-weight: 300; }
-  .zone-bottom p.strong{ font-weight: 700; }
+        #sign {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: var(--sm-w);
+            height: var(--sm-h);
+            background: #fff;
+            overflow: hidden;
+            transform-origin: top left;
 
-  /* TOP: Logo mit Randabstand, innerhalb der Fläche eingepasst und zentriert */
-  .top-logo{
-    position: absolute;
-    inset: var(--top-edge);
-    width: calc(100% - 2 * var(--top-edge));
-    height: calc(100% - 2 * var(--top-edge));
-    object-fit: contain;
-    object-position: center;
-  }
+            /* 3 vertikale Bereiche: TOP fix, BOTTOM fix, CONTENT = verbleibende Höhe */
+            display: grid;
+            grid-template-rows: var(--top-h) minmax(0, 1fr) var(--bottom-h);
+        }
 
-  /* Hilfslinien: Bereichsrahmen + Beschriftung (nur Bildschirm, nicht im PDF) */
-  #sign.show-guides .zone{
-    outline: 1px dashed #8a94a0;
-    outline-offset: -1px;
-  }
-  #sign.show-guides .zone::before{
-    content: attr(data-label);
-    position: absolute;
-    top: 2mm;
-    left: 2mm;
-    padding: 0.5mm 1.5mm;
-    font: 600 8pt "Segoe UI", Arial, sans-serif;
-    color: #fff;
-    background: #5b6672;
-    border-radius: 1mm;
-    z-index: 1;
-  }
+        .zone {
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+        }
 
-  #sign.show-guides .subzone{
-    outline: 1px dashed rgba(255,255,255,0.45);
-    outline-offset: -1px;
-  }
-  #sign.show-guides .subzone::before{
-    content: attr(data-label);
-    position: absolute;
-    bottom: 2mm;
-    left: 2mm;
-    padding: 0.5mm 1.5mm;
-    font: 600 8pt "Segoe UI", Arial, sans-serif;
-    color: #174887;
-    background: #fff;
-    border-radius: 1mm;
-    z-index: 1;
-  }
-  /* leere Bereiche (Höhe 0) bekommen keine Beschriftung */
-  #sign [data-label=""]::before{ display: none !important; }
+        .zone-top {
+            background: #ffffff;
+        }
 
-  .spec{
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-    margin-top: 4px;
-  }
-  .spec td{ padding: 5px 0; border-bottom: 1px solid #eceff2; }
-  .spec td:last-child{ text-align: right; font-variant-numeric: tabular-nums; }
-  .check{
-    display:flex;
-    align-items:center;
-    gap: 8px;
-    font-size: 14px;
-    cursor:pointer;
-  }
+        /* CONTENT: selbst 3 vertikale Bereiche. TOP/BOTTOM fest (Höhe = Inhalt),
+           MIDDLE flexibel (= Rest). */
+        .zone-content {
+            background: #174887;
+            color: #ffffff;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            font-family: "Univers LT Std", Arial, sans-serif;
+            font-size: var(--fs-text);
+            line-height: 1.15;
+        }
 
-  @media print{
-    .app{ padding:0; gap:0; }
-    .panel, .preview-scale-note{ display:none !important; }
-    .preview-wrap{ display:flex; width:auto; max-width:none; }
-    .sign-scale-wrap{
-      box-shadow:none;
-      width: var(--sm-w);
-      height: var(--sm-h);
-      aspect-ratio: auto;
-      overflow: visible;
-    }
-    #sign{
-      position: static;
-      transform: none !important;
-      margin:0;
-    }
-    #sign{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    #sign .zone, #sign .subzone{ outline: none !important; }
-    #sign .zone::before, #sign .subzone::before{ display: none !important; }
-    @page{ size: 210mm 210mm; margin: 0; }
-  }
-</style>
+        .subzone {
+            position: relative;
+            min-height: 0;
+        }
+
+        .zone-content p {
+            margin: 0;
+            font-weight: 300;
+        }
+
+        .content-top {
+            text-align: center;
+            padding-top: var(--content-top-gap);
+        }
+
+        .content-bottom {
+            text-align: center;
+            padding-bottom: var(--content-bottom-gap);
+        }
+
+        /* MIDDLE: editierbare Blöcke (Headline + Subline + grüne Linie), 12,5 mm Rand links/rechts */
+        .content-middle {
+            display: flex;
+            flex-direction: column;
+            justify-content: safe center;
+            padding-inline: var(--mid-side);
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .mid-block {
+            flex: none;
+        }
+
+        .zone-content p.mid-headline {
+            font-size: var(--fs-headline);
+            white-space: pre-wrap;
+        }
+
+        .zone-content p.mid-subline {
+            font-size: var(--fs-subline);
+            white-space: pre-wrap;
+        }
+
+        .mid-line {
+            display: block;
+            height: var(--mid-line-h);
+            width: auto;
+            margin: var(--mid-line-gap) auto 0;
+        }
+
+        .zone-content p.mid-headline .mid-bold {
+            font-weight: 700;
+        }
+
+        .warn {
+            margin: 8px 0 0;
+            font-size: 12px;
+            color: #b3261e;
+        }
+
+        #exportHint {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Headline-Editor: Textfeld mit Fett-Schaltfläche */
+        .rte-bar {
+            display: flex;
+            margin-bottom: 6px;
+        }
+
+        .rte-btn {
+            background: #fff;
+            border: 1px solid #cfd6de;
+            color: #222;
+            font-size: 14px;
+            padding: 4px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .rte-btn.active {
+            background: #222;
+            border-color: #222;
+            color: #fff;
+        }
+
+        .rte {
+            width: 100%;
+            min-height: 70px;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 14px;
+            font-family: inherit;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .zone-bottom {
+            background: #ffffff;
+            color: #174887;
+            /* feste Texte: vertikal zentriert, 12,3 mm Abstand links */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-left: var(--bottom-left);
+            font-family: "Univers LT Std", Arial, sans-serif;
+            font-size: var(--fs-text);
+            line-height: 1.15;
+        }
+
+        /* Logo: Originalgröße aus dem SVG (78,5 mm), Abstand rechts/unten zur Fläche */
+        .bottom-logo {
+            position: absolute;
+            right: var(--bottom-logo-right);
+            bottom: var(--bottom-logo-bottom);
+            width: 78.5mm;
+            height: calc(78.5mm * 4549.1 / 20830.04);
+            display: block;
+        }
+
+        .zone-bottom p {
+            margin: 0;
+            font-weight: 300;
+        }
+
+        .zone-bottom p.strong {
+            font-weight: 700;
+        }
+
+        /* TOP: Logo mit Randabstand, innerhalb der Fläche eingepasst und zentriert */
+        .top-logo {
+            position: absolute;
+            inset: var(--top-edge);
+            width: calc(100% - 2 * var(--top-edge));
+            height: calc(100% - 2 * var(--top-edge));
+            object-fit: contain;
+            object-position: center;
+        }
+
+        /* Hilfslinien: Bereichsrahmen + Beschriftung (nur Bildschirm, nicht im PDF) */
+        #sign.show-guides .zone {
+            outline: 1px dashed #8a94a0;
+            outline-offset: -1px;
+        }
+
+        #sign.show-guides .zone::before {
+            content: attr(data-label);
+            position: absolute;
+            top: 2mm;
+            left: 2mm;
+            padding: 0.5mm 1.5mm;
+            font: 600 8pt "Segoe UI", Arial, sans-serif;
+            color: #fff;
+            background: #5b6672;
+            border-radius: 1mm;
+            z-index: 1;
+        }
+
+        #sign.show-guides .subzone {
+            outline: 1px dashed rgba(255, 255, 255, 0.45);
+            outline-offset: -1px;
+        }
+
+        #sign.show-guides .subzone::before {
+            content: attr(data-label);
+            position: absolute;
+            bottom: 2mm;
+            left: 2mm;
+            padding: 0.5mm 1.5mm;
+            font: 600 8pt "Segoe UI", Arial, sans-serif;
+            color: #174887;
+            background: #fff;
+            border-radius: 1mm;
+            z-index: 1;
+        }
+
+        /* leere Bereiche (Höhe 0) bekommen keine Beschriftung */
+        #sign [data-label=""]::before {
+            display: none !important;
+        }
+
+        .spec {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .spec td {
+            padding: 5px 0;
+            border-bottom: 1px solid #eceff2;
+        }
+
+        .spec td:last-child {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .spec .spec-head td {
+            padding-top: 14px;
+            font-weight: 600;
+            text-align: left;
+            color: #444;
+        }
+
+        .check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        @media print {
+            .app {
+                padding: 0;
+                gap: 0;
+            }
+
+            .panel, .preview-scale-note {
+                display: none !important;
+            }
+
+            .preview-wrap {
+                display: flex;
+                width: auto;
+                max-width: none;
+            }
+
+            .sign-scale-wrap {
+                box-shadow: none;
+                width: var(--sm-w);
+                height: var(--sm-h);
+                aspect-ratio: auto;
+                overflow: visible;
+            }
+
+            #sign {
+                position: static;
+                transform: none !important;
+                margin: 0;
+            }
+
+            #sign {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            #sign .zone, #sign .subzone {
+                outline: none !important;
+            }
+
+            #sign .zone::before, #sign .subzone::before {
+                display: none !important;
+            }
+
+            @page {
+                size: 210mm 210mm;
+                margin: 0;
+            }
+        }
+    </style>
 </head>
 <body>
 <script src="../../shared/auth.js"></script>
 <div class="app">
 
-  <div class="panel">
-    <a class="back-link" href="../../index.html">← Dashboard</a>
-    <h1>SocialMedia</h1>
-    <p class="sub">Quadratisches Format 21 × 21 cm. Editierbar sind Headline und Subline im Bereich MIDDLE, alle anderen Texte sind fest.</p>
+    <div class="panel">
+        <a class="back-link" href="../../index.html">← Dashboard</a>
+        <h1>SocialMedia</h1>
+        <p class="sub">Quadratisches Format 21 × 21 cm. Editierbar sind Headline und Subline im Bereich MIDDLE, alle
+            anderen Texte sind fest.</p>
 
-    <div class="field">
-      <label>Format &amp; Bereiche</label>
-      <table class="spec">
-        <tr><td>Format</td><td>210 × 210 mm</td></tr>
-        <tr><td>TOP</td><td>48 mm</td></tr>
-        <tr><td>CONTENT</td><td>Rest (126 mm)</td></tr>
-        <tr><td>BOTTOM</td><td>36 mm</td></tr>
-      </table>
-    </div>
-
-    <div class="field">
-      <label id="lblHeadline">Headline</label>
-      <div class="rte-bar">
-        <button type="button" class="rte-btn" id="btnBold" title="Markierten Text fett (Strg+B)" aria-pressed="false"><b>B</b></button>
-      </div>
-      <div class="rte" id="inHeadline" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="lblHeadline"></div>
-      <div class="hint">Text markieren und auf B klicken (oder Strg+B), um ihn fett zu setzen.</div>
-    </div>
-
-    <div class="field">
-      <label for="inSubline">Subline</label>
-      <textarea id="inSubline"></textarea>
-      <p class="warn" id="midWarn" hidden>Der Text passt nicht in den Bereich MIDDLE und wird abgeschnitten. Bitte kürzen.</p>
-    </div>
-
-    <div class="field">
-      <label class="check"><input type="checkbox" id="chkGuides" checked> Bereichs-Hilfslinien anzeigen</label>
-      <div class="hint">Hilfslinien erscheinen nicht im PDF.</div>
-    </div>
-
-    <div class="btnrow">
-      <button class="btn-primary" id="btnPdf">📄 Als PDF speichern</button>
-      <button class="btn-secondary" id="btnPng">🖼️ Als PNG speichern</button>
-      <button class="btn-secondary" id="btnJpg">🖼️ Als JPG speichern</button>
-    </div>
-    <div class="hint" id="exportHint">Export mit 300 dpi: 2480 × 2480 px, PDF 210 × 210 mm.</div>
-  </div>
-
-  <div class="preview-wrap">
-    <div class="preview-scale-note">Vorschau (Originalgröße 21 × 21 cm)</div>
-    <div class="sign-scale-wrap" id="signScaleWrap">
-      <div id="sign" class="show-guides">
-        <div class="zone zone-top" id="zoneTop" data-name="TOP">
-          <img class="top-logo" src="../../assets/TOP-Logo.svg" alt="Komm ins Team">
+        <div class="field">
+            <label>Format &amp; Bereiche</label>
+            <table class="spec">
+                <tr>
+                    <td>Format</td>
+                    <td>210 × 210 mm</td>
+                </tr>
+                <tr>
+                    <td>TOP</td>
+                    <td>48 mm</td>
+                </tr>
+                <tr>
+                    <td>CONTENT</td>
+                    <td>Rest (126 mm)</td>
+                </tr>
+                <tr>
+                    <td>BOTTOM</td>
+                    <td>36 mm</td>
+                </tr>
+                <tr class="spec-head">
+                    <td colspan="2">Schriftgrößen (Univers LT Std)</td>
+                </tr>
+                <tr>
+                    <td>CONTENT › TOP</td>
+                    <td><span data-fs="--fs-text"></span> · Light</td>
+                </tr>
+                <tr>
+                    <td>Headline</td>
+                    <td><span data-fs="--fs-headline"></span> · Light, markiert Bold</td>
+                </tr>
+                <tr>
+                    <td>Subline</td>
+                    <td><span data-fs="--fs-subline"></span> · Light</td>
+                </tr>
+                <tr>
+                    <td>CONTENT › BOTTOM</td>
+                    <td><span data-fs="--fs-text"></span> · Light</td>
+                </tr>
+                <tr>
+                    <td>BOTTOM</td>
+                    <td><span data-fs="--fs-text"></span> · Light / Bold</td>
+                </tr>
+            </table>
         </div>
-        <div class="zone zone-content" id="zoneContent" data-name="CONTENT">
-          <div class="subzone content-top" data-name="› TOP">
-            <p>Wir suchen zum nächstmöglichen Zeitpunkt einen</p>
-          </div>
-          <div class="subzone content-middle" data-name="› MIDDLE"></div>
-          <div class="subzone content-bottom" data-name="› BOTTOM">
-            <p>Senden Sie Ihre Bewerbung gerne an:</p>
-            <p>bewerbung@ostseeklinik-zingst.de</p>
-          </div>
+
+        <div class="field">
+            <label id="lblHeadline">Headline</label>
+            <div class="rte-bar">
+                <button type="button" class="rte-btn" id="btnBold" title="Markierten Text fett (Strg+B)"
+                        aria-pressed="false"><b>B</b></button>
+            </div>
+            <div class="rte" id="inHeadline" contenteditable="true" role="textbox" aria-multiline="true"
+                 aria-labelledby="lblHeadline"></div>
+            <div class="hint">Text markieren und auf B klicken (oder Strg+B), um ihn fett zu setzen.</div>
         </div>
-        <div class="zone zone-bottom" id="zoneBottom" data-name="BOTTOM">
-          <p>Weitere Infos:</p>
-          <p class="strong">www.ostseeklinik-zingst.de</p>
-          <object class="bottom-logo" type="image/svg+xml" data="../../assets/BOTTOM-logo.svg" role="img" aria-label="Ostseeklinik Zingst"></object>
+
+        <div class="field">
+            <label for="inSubline">Subline</label>
+            <textarea id="inSubline"></textarea>
+            <p class="warn" id="midWarn" hidden>Der Text passt nicht in den Bereich MIDDLE und wird abgeschnitten. Bitte
+                kürzen.</p>
         </div>
-      </div>
+
+        <div class="field">
+            <label class="check"><input type="checkbox" id="chkGuides" checked> Bereichs-Hilfslinien anzeigen</label>
+            <div class="hint">Hilfslinien erscheinen nicht im PDF.</div>
+        </div>
+
+        <div class="btnrow">
+            <button class="btn-primary" id="btnPdf">📄 Als PDF speichern</button>
+            <button class="btn-secondary" id="btnPng">🖼️ Als PNG speichern</button>
+            <button class="btn-secondary" id="btnJpg">🖼️ Als JPG speichern</button>
+        </div>
+        <div class="hint" id="exportHint">Export mit 300 dpi: 2480 × 2480 px, PDF 210 × 210 mm.</div>
     </div>
-  </div>
+
+    <div class="preview-wrap">
+        <div class="preview-scale-note">Vorschau (Originalgröße 21 × 21 cm)</div>
+        <div class="sign-scale-wrap" id="signScaleWrap">
+            <div id="sign" class="show-guides">
+                <div class="zone zone-top" id="zoneTop" data-name="TOP">
+                    <img class="top-logo" src="../../assets/TOP-Logo.svg" alt="Komm ins Team">
+                </div>
+                <div class="zone zone-content" id="zoneContent" data-name="CONTENT">
+                    <div class="subzone content-top" data-name="› TOP">
+                        <p>Wir suchen zum nächstmöglichen Zeitpunkt einen</p>
+                    </div>
+                    <div class="subzone content-middle" data-name="› MIDDLE"></div>
+                    <div class="subzone content-bottom" data-name="› BOTTOM">
+                        <p>Senden Sie Ihre Bewerbung gerne an:</p>
+                        <p>bewerbung@ostseeklinik-zingst.de</p>
+                    </div>
+                </div>
+                <div class="zone zone-bottom" id="zoneBottom" data-name="BOTTOM">
+                    <p>Weitere Infos:</p>
+                    <p class="strong">www.ostseeklinik-zingst.de</p>
+                    <object class="bottom-logo" type="image/svg+xml" data="../../assets/BOTTOM-logo.svg" role="img"
+                            aria-label="Ostseeklinik Zingst"></object>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </div>
 
 <script src="../../shared/export.js"></script>
 <script>
-const els = {
-  signScaleWrap: document.getElementById("signScaleWrap"),
-  sign: document.getElementById("sign"),
-  chkGuides: document.getElementById("chkGuides"),
-  zones: document.querySelectorAll(".zone, .subzone"),
-  middle: document.querySelector(".content-middle"),
-  inHeadline: document.getElementById("inHeadline"),
-  btnBold: document.getElementById("btnBold"),
-  inSubline: document.getElementById("inSubline"),
-  midWarn: document.getElementById("midWarn"),
-  btnPdf: document.getElementById("btnPdf"),
-  btnPng: document.getElementById("btnPng"),
-  btnJpg: document.getElementById("btnJpg")
-};
+    const els = {
+        signScaleWrap: document.getElementById("signScaleWrap"),
+        sign: document.getElementById("sign"),
+        chkGuides: document.getElementById("chkGuides"),
+        zones: document.querySelectorAll(".zone, .subzone"),
+        middle: document.querySelector(".content-middle"),
+        inHeadline: document.getElementById("inHeadline"),
+        btnBold: document.getElementById("btnBold"),
+        inSubline: document.getElementById("inSubline"),
+        midWarn: document.getElementById("midWarn"),
+        btnPdf: document.getElementById("btnPdf"),
+        btnPng: document.getElementById("btnPng"),
+        btnJpg: document.getElementById("btnJpg")
+    };
 
-// Der einzige editierbare Block (Bereich MIDDLE)
-// Headline als Textabschnitte: { t: Text (inkl. Zeilenumbruechen), b: fett }
-const state = {
-  headline: [{ t: "Jobtitel", b: true }, { t: " (m/w/d)", b: false }],
-  subline: "Jobbeschreibung"
-};
+    // Der einzige editierbare Block (Bereich MIDDLE)
+    // Headline als Textabschnitte: { t: Text (inkl. Zeilenumbruechen), b: fett }
+    const state = {
+        headline: [{t: "Jobtitel", b: true}, {t: " oder", b: false}, {t: " Jobname", b: false}],
+        subline: "(m/w/d) in Voll- oder Teilzeit"
+    };
 
-function headlineText(){
-  return state.headline.map(r => r.t).join("");
-}
+    function headlineText() {
+        return state.headline.map(r => r.t).join("");
+    }
 
-// Liest den Editor (contenteditable) in Textabschnitte; nur Fett und Zeilenumbrueche zaehlen.
-function readRuns(root){
-  const runs = [];
-  const endsWithNewline = () => runs.length > 0 && runs[runs.length - 1].t.endsWith("\n");
-  const push = (t, b) => {
-    if(!t) return;
-    const last = runs[runs.length - 1];
-    if(last && last.b === b) last.t += t; else runs.push({ t, b });
-  };
-  const walk = (node, bold) => {
-    node.childNodes.forEach(ch => {
-      if(ch.nodeType === Node.TEXT_NODE){
-        push(ch.nodeValue.split(String.fromCharCode(160)).join(" "), bold);
-        return;
-      }
-      if(ch.nodeType !== Node.ELEMENT_NODE) return;
-      if(ch.tagName === "BR"){ push("\n", bold); return; }
-      let b = bold;
-      if(ch.tagName === "B" || ch.tagName === "STRONG") b = true;
-      const w = ch.style && ch.style.fontWeight;
-      if(w) b = (w === "bold" || w === "bolder" || parseInt(w, 10) >= 600);
-      if((ch.tagName === "DIV" || ch.tagName === "P") && runs.length && !endsWithNewline()) push("\n", false);
-      walk(ch, b);
+    // Liest den Editor (contenteditable) in Textabschnitte; nur Fett und Zeilenumbrueche zaehlen.
+    function readRuns(root) {
+        const runs = [];
+        const endsWithNewline = () => runs.length > 0 && runs[runs.length - 1].t.endsWith("\n");
+        const push = (t, b) => {
+            if (!t) return;
+            const last = runs[runs.length - 1];
+            if (last && last.b === b) last.t += t; else runs.push({t, b});
+        };
+        const walk = (node, bold) => {
+            node.childNodes.forEach(ch => {
+                if (ch.nodeType === Node.TEXT_NODE) {
+                    push(ch.nodeValue.split(String.fromCharCode(160)).join(" "), bold);
+                    return;
+                }
+                if (ch.nodeType !== Node.ELEMENT_NODE) return;
+                if (ch.tagName === "BR") {
+                    push("\n", bold);
+                    return;
+                }
+                let b = bold;
+                if (ch.tagName === "B" || ch.tagName === "STRONG") b = true;
+                const w = ch.style && ch.style.fontWeight;
+                if (w) b = (w === "bold" || w === "bolder" || parseInt(w, 10) >= 600);
+                if ((ch.tagName === "DIV" || ch.tagName === "P") && runs.length && !endsWithNewline()) push("\n", false);
+                walk(ch, b);
+            });
+        };
+        walk(root, false);
+        while (runs.length && /\n$/.test(runs[runs.length - 1].t)) {
+            const last = runs[runs.length - 1];
+            last.t = last.t.replace(/\n+$/, "");
+            if (!last.t) runs.pop();
+        }
+        return runs;
+    }
+
+    function fillEditor(runs) {
+        els.inHeadline.replaceChildren();
+        runs.forEach(r => {
+            if (r.b) {
+                const b = document.createElement("b");
+                b.textContent = r.t;
+                els.inHeadline.appendChild(b);
+            } else {
+                els.inHeadline.appendChild(document.createTextNode(r.t));
+            }
+        });
+    }
+
+    const EXPORT = {widthMm: 210, heightMm: 210, dpi: 300};
+    const MM_PER_PX = 25.4 / 96;
+
+    function renderMiddle() {
+        els.middle.replaceChildren();
+        const blockEl = document.createElement("div");
+        blockEl.className = "mid-block";
+
+        if (headlineText()) {
+            const h = document.createElement("p");
+            h.className = "mid-headline";
+            state.headline.forEach(r => {
+                if (r.b) {
+                    const s = document.createElement("span");
+                    s.className = "mid-bold";
+                    s.textContent = r.t;
+                    h.appendChild(s);
+                } else {
+                    h.appendChild(document.createTextNode(r.t));
+                }
+            });
+            blockEl.appendChild(h);
+        }
+        if (state.subline) {
+            const s = document.createElement("p");
+            s.className = "mid-subline";
+            s.textContent = state.subline;
+            blockEl.appendChild(s);
+        }
+
+        const line = document.createElement("img");
+        line.className = "mid-line";
+        line.src = "../../assets/green-line.svg";
+        line.alt = "";
+        blockEl.appendChild(line);
+
+        els.middle.appendChild(blockEl);
+        els.midWarn.hidden = els.middle.scrollHeight <= els.middle.clientHeight + 1;
+    }
+
+    function updatePreviewScale() {
+        const wrapWidth = els.signScaleWrap.clientWidth;
+        const naturalWidth = els.sign.offsetWidth; // von transform unbeeinflusst
+        if (!wrapWidth || !naturalWidth) return;
+        const scale = wrapWidth / naturalWidth;
+        els.sign.style.transform = `scale(${scale})`;
+        updateZoneLabels(scale);
+    }
+
+    // Beschriftet die Bereiche mit der tatsächlich gerenderten Höhe in mm
+    function updateZoneLabels(scale) {
+        els.zones.forEach(z => {
+            const mm = z.getBoundingClientRect().height / scale * MM_PER_PX;
+            z.dataset.label = mm < 0.05 ? "" : `${z.dataset.name} · ${mm.toFixed(1).replace(/\.0$/, "")} mm`;
+        });
+    }
+
+    // --- Export ---
+    function fileBase() {
+        const slug = headlineText().toLowerCase().replace(/[^a-z0-9äöüß]+/g, "-").replace(/^-+|-+$/g, "");
+        return slug ? "socialmedia-" + slug : "socialmedia";
+    }
+
+    function setBusy(busy) {
+        [els.btnPdf, els.btnPng, els.btnJpg].forEach(b => {
+            b.disabled = busy;
+        });
+        document.body.style.cursor = busy ? "progress" : "";
+    }
+
+    async function exportAs(kind) {
+        // Per Doppelklick (file://) kann der Browser keine Dateien laden/auslesen:
+        // PDF geht dann über den Druckdialog, Bilder brauchen die Webseite.
+        if (location.protocol === "file:") {
+            if (kind === "pdf") {
+                window.print();
+                return;
+            }
+            alert("PNG/JPG-Export funktioniert nur über die Webseite (GitHub Pages) oder einen lokalen Server, nicht per Doppelklick auf die Datei.\n\nAlternative: „Als PDF speichern“ nutzt dann den Druckdialog.");
+            return;
+        }
+
+        setBusy(true);
+        try {
+            const canvas = await OkzExport.renderToCanvas(els.sign, EXPORT);
+            const base = fileBase();
+            if (kind === "png") {
+                OkzExport.download(await OkzExport.canvasToBlob(canvas, "image/png"), base + ".png");
+                return;
+            }
+            const jpg = await OkzExport.canvasToBlob(canvas, "image/jpeg", 0.95);
+            if (kind === "jpg") {
+                OkzExport.download(jpg, base + ".jpg");
+            } else {
+                const pdf = await OkzExport.pdfFromJpeg(jpg, canvas.width, canvas.height, EXPORT.widthMm, EXPORT.heightMm);
+                OkzExport.download(pdf, base + ".pdf");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Export fehlgeschlagen: " + err.message);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    // Legende: Schriftgroessen direkt aus den CSS-Variablen lesen (eine Quelle der Wahrheit)
+    document.querySelectorAll("[data-fs]").forEach(el => {
+        const v = getComputedStyle(document.documentElement).getPropertyValue(el.dataset.fs).trim();
+        el.textContent = v.replace(/pt$/, " pt");
     });
-  };
-  walk(root, false);
-  while(runs.length && /\n$/.test(runs[runs.length - 1].t)){
-    const last = runs[runs.length - 1];
-    last.t = last.t.replace(/\n+$/, "");
-    if(!last.t) runs.pop();
-  }
-  return runs;
-}
 
-function fillEditor(runs){
-  els.inHeadline.replaceChildren();
-  runs.forEach(r => {
-    if(r.b){
-      const b = document.createElement("b");
-      b.textContent = r.t;
-      els.inHeadline.appendChild(b);
-    } else {
-      els.inHeadline.appendChild(document.createTextNode(r.t));
+    // --- Events ---
+    fillEditor(state.headline);
+    els.inSubline.value = state.subline;
+
+    function syncHeadline() {
+        state.headline = readRuns(els.inHeadline);
+        renderMiddle();
+        updateBoldState();
     }
-  });
-}
 
-const EXPORT = { widthMm: 210, heightMm: 210, dpi: 300 };
-const MM_PER_PX = 25.4 / 96;
+    function updateBoldState() {
+        const sel = document.getSelection();
+        const inside = sel.rangeCount > 0 && els.inHeadline.contains(sel.anchorNode);
+        const on = inside && document.queryCommandState("bold");
+        els.btnBold.classList.toggle("active", !!on);
+        els.btnBold.setAttribute("aria-pressed", String(!!on));
+    }
 
-function renderMiddle(){
-  els.middle.replaceChildren();
-  const blockEl = document.createElement("div");
-  blockEl.className = "mid-block";
-
-  if(headlineText()){
-    const h = document.createElement("p");
-    h.className = "mid-headline";
-    state.headline.forEach(r => {
-      if(r.b){
-        const s = document.createElement("span");
-        s.className = "mid-bold";
-        s.textContent = r.t;
-        h.appendChild(s);
-      } else {
-        h.appendChild(document.createTextNode(r.t));
-      }
+    els.inHeadline.addEventListener("input", syncHeadline);
+    // Nur Fett erlaubt: Kursiv/Unterstrichen/... sperren, Enter als Zeilenumbruch, Einfuegen nur als Text
+    els.inHeadline.addEventListener("beforeinput", e => {
+        if (e.inputType === "insertParagraph") {
+            e.preventDefault();
+            document.execCommand("insertLineBreak");
+        } else if (e.inputType === "insertFromDrop" || (e.inputType.startsWith("format") && e.inputType !== "formatBold")) {
+            e.preventDefault();
+        }
     });
-    blockEl.appendChild(h);
-  }
-  if(state.subline){
-    const s = document.createElement("p");
-    s.className = "mid-subline";
-    s.textContent = state.subline;
-    blockEl.appendChild(s);
-  }
+    els.inHeadline.addEventListener("paste", e => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+        document.execCommand("insertText", false, text);
+    });
+    els.btnBold.addEventListener("mousedown", e => e.preventDefault());
+    els.btnBold.addEventListener("click", () => {
+        els.inHeadline.focus();
+        document.execCommand("bold");
+        syncHeadline();
+    });
+    document.addEventListener("selectionchange", updateBoldState);
+    els.inSubline.addEventListener("input", e => {
+        state.subline = e.target.value;
+        renderMiddle();
+    });
 
-  const line = document.createElement("img");
-  line.className = "mid-line";
-  line.src = "../../assets/green-line.svg";
-  line.alt = "";
-  blockEl.appendChild(line);
+    els.chkGuides.addEventListener("change", () => {
+        els.sign.classList.toggle("show-guides", els.chkGuides.checked);
+    });
+    els.btnPdf.addEventListener("click", () => exportAs("pdf"));
+    els.btnPng.addEventListener("click", () => exportAs("png"));
+    els.btnJpg.addEventListener("click", () => exportAs("jpg"));
 
-  els.middle.appendChild(blockEl);
-  els.midWarn.hidden = els.middle.scrollHeight <= els.middle.clientHeight + 1;
-}
-
-function updatePreviewScale(){
-  const wrapWidth = els.signScaleWrap.clientWidth;
-  const naturalWidth = els.sign.offsetWidth; // von transform unbeeinflusst
-  if(!wrapWidth || !naturalWidth) return;
-  const scale = wrapWidth / naturalWidth;
-  els.sign.style.transform = `scale(${scale})`;
-  updateZoneLabels(scale);
-}
-
-// Beschriftet die Bereiche mit der tatsächlich gerenderten Höhe in mm
-function updateZoneLabels(scale){
-  els.zones.forEach(z => {
-    const mm = z.getBoundingClientRect().height / scale * MM_PER_PX;
-    z.dataset.label = mm < 0.05 ? "" : `${z.dataset.name} · ${mm.toFixed(1).replace(/\.0$/, "")} mm`;
-  });
-}
-
-// --- Export ---
-function fileBase(){
-  const slug = headlineText().toLowerCase().replace(/[^a-z0-9äöüß]+/g, "-").replace(/^-+|-+$/g, "");
-  return slug ? "socialmedia-" + slug : "socialmedia";
-}
-
-function setBusy(busy){
-  [els.btnPdf, els.btnPng, els.btnJpg].forEach(b => { b.disabled = busy; });
-  document.body.style.cursor = busy ? "progress" : "";
-}
-
-async function exportAs(kind){
-  // Per Doppelklick (file://) kann der Browser keine Dateien laden/auslesen:
-  // PDF geht dann über den Druckdialog, Bilder brauchen die Webseite.
-  if(location.protocol === "file:"){
-    if(kind === "pdf"){ window.print(); return; }
-    alert("PNG/JPG-Export funktioniert nur über die Webseite (GitHub Pages) oder einen lokalen Server, nicht per Doppelklick auf die Datei.\n\nAlternative: „Als PDF speichern“ nutzt dann den Druckdialog.");
-    return;
-  }
-
-  setBusy(true);
-  try{
-    const canvas = await OkzExport.renderToCanvas(els.sign, EXPORT);
-    const base = fileBase();
-    if(kind === "png"){
-      OkzExport.download(await OkzExport.canvasToBlob(canvas, "image/png"), base + ".png");
-      return;
-    }
-    const jpg = await OkzExport.canvasToBlob(canvas, "image/jpeg", 0.95);
-    if(kind === "jpg"){
-      OkzExport.download(jpg, base + ".jpg");
-    } else {
-      const pdf = await OkzExport.pdfFromJpeg(jpg, canvas.width, canvas.height, EXPORT.widthMm, EXPORT.heightMm);
-      OkzExport.download(pdf, base + ".pdf");
-    }
-  }catch(err){
-    console.error(err);
-    alert("Export fehlgeschlagen: " + err.message);
-  }finally{
-    setBusy(false);
-  }
-}
-
-// --- Events ---
-fillEditor(state.headline);
-els.inSubline.value = state.subline;
-
-function syncHeadline(){
-  state.headline = readRuns(els.inHeadline);
-  renderMiddle();
-  updateBoldState();
-}
-
-function updateBoldState(){
-  const sel = document.getSelection();
-  const inside = sel.rangeCount > 0 && els.inHeadline.contains(sel.anchorNode);
-  const on = inside && document.queryCommandState("bold");
-  els.btnBold.classList.toggle("active", !!on);
-  els.btnBold.setAttribute("aria-pressed", String(!!on));
-}
-
-els.inHeadline.addEventListener("input", syncHeadline);
-// Nur Fett erlaubt: Kursiv/Unterstrichen/... sperren, Enter als Zeilenumbruch, Einfuegen nur als Text
-els.inHeadline.addEventListener("beforeinput", e => {
-  if(e.inputType === "insertParagraph"){
-    e.preventDefault();
-    document.execCommand("insertLineBreak");
-  } else if(e.inputType === "insertFromDrop" || (e.inputType.startsWith("format") && e.inputType !== "formatBold")){
-    e.preventDefault();
-  }
-});
-els.inHeadline.addEventListener("paste", e => {
-  e.preventDefault();
-  const text = (e.clipboardData || window.clipboardData).getData("text/plain");
-  document.execCommand("insertText", false, text);
-});
-els.btnBold.addEventListener("mousedown", e => e.preventDefault());
-els.btnBold.addEventListener("click", () => {
-  els.inHeadline.focus();
-  document.execCommand("bold");
-  syncHeadline();
-});
-document.addEventListener("selectionchange", updateBoldState);
-els.inSubline.addEventListener("input", e => { state.subline = e.target.value; renderMiddle(); });
-
-els.chkGuides.addEventListener("change", () => {
-  els.sign.classList.toggle("show-guides", els.chkGuides.checked);
-});
-els.btnPdf.addEventListener("click", () => exportAs("pdf"));
-els.btnPng.addEventListener("click", () => exportAs("png"));
-els.btnJpg.addEventListener("click", () => exportAs("jpg"));
-
-window.addEventListener("resize", updatePreviewScale);
-window.addEventListener("load", () => { updatePreviewScale(); renderMiddle(); });
-renderMiddle();
-updatePreviewScale();
+    window.addEventListener("resize", updatePreviewScale);
+    window.addEventListener("load", () => {
+        updatePreviewScale();
+        renderMiddle();
+    });
+    renderMiddle();
+    updatePreviewScale();
 </script>
 </body>
 </html>
