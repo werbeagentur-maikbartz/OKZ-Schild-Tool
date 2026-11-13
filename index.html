@@ -1,133 +1,182 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OKZ Tools</title>
-<link rel="stylesheet" href="shared/base.css">
-<style>
-  .dash{
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 32px 24px 48px;
-  }
-  .dash h1{ font-size: 26px; margin: 0 0 4px; }
-  .dash > p.sub{ margin: 0 0 28px; color:#666; font-size: 14px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OKZ Tools</title>
+    <link rel="stylesheet" href="shared/base.css">
+    <style>
+        .dash {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 32px 24px 48px;
+        }
 
-  .grid{
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 20px;
-  }
-  .grid > li{ display: flex; }
-  .card-link{
-    display: flex;
-    flex: 1;
-    color: inherit;
-    text-decoration: none;
-    border-radius: 12px;
-  }
-  .card{
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    background: #fff;
-    border: 2px solid transparent;
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-    padding: 16px;
-    transition: box-shadow .15s, border-color .15s;
-  }
-  .card-link:hover .card{ box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
-  .card-link:focus-visible{ outline: none; }
-  .card-link:focus-visible .card{ border-color: #1a7f37; }
+        .dash h1 {
+            font-size: 26px;
+            margin: 0 0 4px;
+        }
 
-  /* Maßstabsgetreue Mini-Vorschau: jede Fläche ist ein Segment, --g = Höhe in mm */
-  .media{
-    display: flex;
-    flex-direction: column;
-    aspect-ratio: 1 / 1;
-    max-width: 150px;
-    width: 100%;
-    margin-inline: auto;
-    border: 1px solid #d5dae0;
-    overflow: hidden;
-  }
-  .media span{ flex: var(--g) 1 0; background: var(--c); min-height: 0; }
+        .dash > p.sub {
+            margin: 0 0 28px;
+            color: #666;
+            font-size: 14px;
+        }
 
-  .card header{
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px 8px;
-  }
-  .card h2{ font-size: 18px; margin: 0; flex: 1 1 100%; }
-  .card p{ margin: 0; color:#555; font-size: 13px; line-height: 1.4; }
+        .grid {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
 
-  .badge{
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: #eef1f5;
-    border: 1px solid #cfd6de;
-    color: #333;
-  }
-  .badge.live{ background:#e3f3e8; border-color:#b7dcc1; color:#17622c; }
-  .badge.wip{ background:#fff3d6; border-color:#f0d98f; color:#7a5a00; }
-</style>
+        .grid > li {
+            display: flex;
+        }
+
+        .card-link {
+            display: flex;
+            flex: 1;
+            color: inherit;
+            text-decoration: none;
+            border-radius: 12px;
+        }
+
+        .card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #fff;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            transition: box-shadow .15s, border-color .15s;
+        }
+
+        .card-link:hover .card {
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        }
+
+        .card-link:focus-visible {
+            outline: none;
+        }
+
+        .card-link:focus-visible .card {
+            border-color: #1a7f37;
+        }
+
+        /* Maßstabsgetreue Mini-Vorschau: jede Fläche ist ein Segment, --g = Höhe in mm */
+        .media {
+            display: flex;
+            flex-direction: column;
+            aspect-ratio: 1 / 1;
+            max-width: 150px;
+            width: 100%;
+            margin-inline: auto;
+            border: 1px solid #d5dae0;
+            overflow: hidden;
+        }
+
+        .media span {
+            flex: var(--g) 1 0;
+            background: var(--c);
+            min-height: 0;
+        }
+
+        .card header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 6px 8px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin: 0;
+            flex: 1 1 100%;
+        }
+
+        .card p {
+            margin: 0;
+            color: #555;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #eef1f5;
+            border: 1px solid #cfd6de;
+            color: #333;
+        }
+
+        .badge.live {
+            background: #e3f3e8;
+            border-color: #b7dcc1;
+            color: #17622c;
+        }
+
+        .badge.wip {
+            background: #fff3d6;
+            border-color: #f0d98f;
+            color: #7a5a00;
+        }
+    </style>
 </head>
 <body>
 <script src="shared/auth.js"></script>
 
 <main class="dash">
-  <h1>OKZ Tools</h1>
-  <p class="sub">Werkzeug auswählen.</p>
+    <h1>OKZ Tools</h1>
+    <p class="sub">Werkzeug auswählen.</p>
 
-  <!-- Neue Erweiterung: <li> unten kopieren, Link/Texte/Maße anpassen und
-       unter apps/<name>/index.html anlegen (Anleitung: README.md). -->
-  <ul class="grid">
+    <!-- Neue Erweiterung: <li> unten kopieren, Link/Texte/Maße anpassen und
+         unter apps/<name>/index.html anlegen (Anleitung: README.md). -->
+    <ul class="grid">
 
-    <li>
-      <a class="card-link" href="apps/okz-schilder/index.html">
-        <article class="card">
-          <div class="media" aria-hidden="true">
-            <span style="--g:45; --c:rgb(59,107,97)"></span>
-            <span style="--g:115; --c:#fff"></span>
-          </div>
-          <header>
-            <h2>OKZ-Schilder</h2>
-            <span class="badge">16 × 16 cm</span>
-            <span class="badge live">aktiv</span>
-          </header>
-          <p>Schild mit farbiger Kopffläche und frei kombinierbaren Textblöcken. PDF-Export und Vorlagen.</p>
-        </article>
-      </a>
-    </li>
+        <li>
+            <a class="card-link" href="apps/okz-schilder/index.html">
+                <article class="card">
+                    <div class="media" aria-hidden="true">
+                        <span style="--g:45; --c:rgb(59,107,97)"></span>
+                        <span style="--g:115; --c:#fff"></span>
+                    </div>
+                    <header>
+                        <h2>OKZ-Schilder</h2>
+                        <span class="badge">16 × 16 cm</span>
+                        <span class="badge live">aktiv</span>
+                    </header>
+                    <p>Schild mit farbiger Kopffläche und frei kombinierbaren Textblöcken. PDF-Export und Vorlagen.</p>
+                </article>
+            </a>
+        </li>
 
-    <li>
-      <a class="card-link" href="apps/socialmedia/index.html">
-        <article class="card">
-          <div class="media" aria-hidden="true">
-            <span style="--g:48; --c:#fff"></span>
-            <span style="--g:126; --c:#174887"></span>
-            <span style="--g:36; --c:#fff"></span>
-          </div>
-          <header>
-            <h2>SocialMedia</h2>
-            <span class="badge">21 × 21 cm</span>
-            <span class="badge wip">in Vorbereitung</span>
-          </header>
-          <p>Quadratisches Format mit den Bereichen TOP, CONTENT und BOTTOM.</p>
-        </article>
-      </a>
-    </li>
+        <li>
+            <a class="card-link" href="apps/socialmedia/index.html">
+                <article class="card">
+                    <div class="media" aria-hidden="true">
+                        <span style="--g:48; --c:#fff"></span>
+                        <span style="--g:126; --c:#174887"></span>
+                        <span style="--g:36; --c:#fff"></span>
+                    </div>
+                    <header>
+                        <h2>SocialMedia</h2>
+                        <span class="badge">21 × 21 cm</span>
+                        <span class="badge live">aktiv</span>
+                    </header>
+                    <p>Quadratisches Format mit den Bereichen TOP, CONTENT und BOTTOM.</p>
+                </article>
+            </a>
+        </li>
 
-  </ul>
+    </ul>
 </main>
 </body>
 </html>
